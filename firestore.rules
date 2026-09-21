@@ -1,0 +1,59 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email.lower() == 'warzheen0@gmail.com' ||
+        request.auth.token.email.lower() == 'gust89662@gmail.com' ||
+        request.auth.token.email.lower() == 'njperfumee@gmail.com' ||
+        request.auth.token.email.lower() == 'kurddln@gmail.com' ||
+        request.auth.token.email.lower() == 'mindaurora82@gmail.com'
+      );
+    }
+
+    // Health check / connection test
+    match /test/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Products catalog: public can read, admin can write
+    match /njzaro_products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Global settings: public can read, admin can write
+    match /njzaro_settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Reviews: public can read and submit reviews, admin can delete/manage
+    match /njzaro_reviews/{reviewId} {
+      allow read: if true;
+      allow create: if request.resource.data.name is string &&
+                       request.resource.data.name.size() > 0 &&
+                       request.resource.data.name.size() <= 100 &&
+                       request.resource.data.text is string &&
+                       request.resource.data.text.size() > 0 &&
+                       request.resource.data.text.size() <= 2000 &&
+                       request.resource.data.rating is number &&
+                       request.resource.data.rating >= 1 &&
+                       request.resource.data.rating <= 5;
+      allow update, delete: if isAdmin();
+    }
+
+    // Default safety deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+
